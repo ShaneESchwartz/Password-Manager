@@ -30,7 +30,9 @@ public class PasswordModel {
         try {
             cipher = Cipher.getInstance("AES");
         }
-        catch(NoSuchPaddingException nspe) {
+        catch(NoSuchPaddingException nspe) { //break into seperate methods - probably wrong password //wont get cookies back, will get this error -> retyurns boolean 
+            //encrypt and decrypt methods can both create cipher
+            //be able to text that it does what we want this to do. 
             System.out.println("NoSuchPaddingException");
         }
         catch(NoSuchAlgorithmException nsae) {
