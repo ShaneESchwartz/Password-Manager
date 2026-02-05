@@ -133,18 +133,14 @@ public class PasswordModel {
     //Encrypt
     // SAVE SALT SOMEWHERE
     // SAVE ENCRYPTED VERIFICATION MESSAGE SOMEWHERE
-    private static String encryptPassword(String password) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    // Call Generate Salt
+    // Generate Key 
+    // then encrypt password
+    private static String encryptPassword(String password, byte encodedKey[]) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         // Generate salt, then encode salt
-        byte salt[] = generateSalt();
-        String saltString = Base64.getEncoder().encodeToString(salt);
-        byte saltBytes[] = saltString.getBytes();
 
         // creating a key using PBKDF2 from the inputted password using the salt we made
         // then encode that key
-        KeySpec spec = new PBEKeySpec(password.toCharArray(), saltBytes, 600000, 256);
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PDBKDF2WithHmacSHA256");
-        SecretKey privateKey = factory.generateSecret(spec);
-        byte encoded[] = privateKey.getEncoded();
 
         // encoding the verification string "Mattia"
         // byte verifyByte[] = verifyString.getBytes();
@@ -153,7 +149,7 @@ public class PasswordModel {
         // take encoded key from PBKDF2 then encrypt verification string "Mattia" using that key
         // return the encrypted and encoded verification string
         Cipher cipher = Cipher.getInstance("AES");
-        SecretKeySpec key = new SecretKeySpec(encoded, "AES");
+        SecretKeySpec key = new SecretKeySpec(encodedKey, "AES");
         cipher.init(Cipher.ENCRYPT_MODE, key);
         byte encryptedData[] = cipher.doFinal(verifyString.getBytes());
         String messageString = new String(Base64.getEncoder().encode(encryptedData));
@@ -164,27 +160,43 @@ public class PasswordModel {
     // Decrypt
     // Use inputted password to attempt to decrypt verification string "Mattia"
     // if output is not "Mattia" then you know the entered password was incorrect
-    private static String decryptPassword(String password){
+    // pass output into corect password? function
+    private static String decryptPassword(String password, byte salt[]) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         // get salt from password file 
-        KeySpec spec = new PBEKeySpec(password.toCharArray(), saltBytes, 600000, 256);
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PDBKDF2WithHmacSHA256");
-        SecretKey privateKey = factory.generateSecret(spec);
-        byte encoded[] = privateKey.getEncoded();
+        
+        byte encodedKey[] = createKey(salt, password);
         
         Cipher cipher = Cipher.getInstance("AES");
-        SecretKeySpec key = new SecretKeySpec(, "AES");
+        SecretKeySpec key = new SecretKeySpec(encodedKey, "AES");
         cipher.init(Cipher.DECRYPT_MODE, key);
+        byte decodedData[] = Base64.getDecoder().decode(encodedVerifyString);
+        byte decryptedData[] = cipher.doFinal(decodedData);
+        String decryptedVerificationString = new String(decryptedData);
+        return decryptedVerificationString;
         
     }
 
+    private static byte[] createKey(byte salt[], String password) throws NoSuchAlgorithmException, InvalidKeySpecException{
 
-    //Generate Salt
+        // creating a key using PBKDF2 from the inputted password using the salt we made
+        // then encode that key
+        KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 600000, 256);
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PDBKDF2WithHmacSHA256");
+        SecretKey privateKey = factory.generateSecret(spec);
+        byte encodedKey[] = privateKey.getEncoded();
+
+        return encodedKey;
+
+    }
+
+    //Generate Salt then encode it
     private static byte[] generateSalt() {
         SecureRandom random = new SecureRandom();
         byte bytes[] = new byte[20];
         random.nextBytes(bytes);
-        // String saltString = Base64.getEncoder().encodeToString(bytes);
-        return bytes;
+        String saltString = Base64.getEncoder().encodeToString(bytes);
+        byte saltBytes[] = saltString.getBytes();
+        return saltBytes;
     }
 
 }
