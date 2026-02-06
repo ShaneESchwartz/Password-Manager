@@ -13,7 +13,9 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.spec.InvalidKeySpecException;
 import java.security.spec.KeySpec;
+import java.util.ArrayList;
 import java.util.Base64;
+import java.util.List;
 
 
 public class PasswordModel {
@@ -34,8 +36,14 @@ public class PasswordModel {
     //     try {
     //         cipher = Cipher.getInstance("AES");
     //     }
-    //     catch(NoSuchPaddingException nspe) { //break into seperate methods - probably wrong password //wont get cookies back, will get this error -> retyurns boolean 
-    //         //encrypt and decrypt methods can both create cipher
+    //     catch(NoSuchPaddingException nspe) { //break into seperate methods - probably wrong password //wont getLabel();
+    // try{} cookies back, will getLabel();
+    // /
+    // bufferedWriter()
+    // label + "\t" + encryptedString/ try{} this error -> retyurns boolean 
+    // /
+    // bufferedWriter()
+    // label + "\t" + encryptedString/         //encrypt and decrypt methods can both create cipher
     //         //be able to text that it does what we want this to do. 
     //         System.out.println("NoSuchPaddingException");
     //     }
@@ -50,22 +58,64 @@ public class PasswordModel {
     private static String encodedVerifyString;
 
     private void loadPasswords() {
-        // TODO: Replace with loading passwords from file, you will want to add them to the passwords list defined above
-        try{
+        // // TODO: Replace with loading passwords from file, you will want to add them to the passwords list defined above
+        // try{
+        //     BufferedReader b = new BufferedReader(new FileReader(passwordFile));
+        //     String line;
+        //     while ((line = b.readLine()) != null) {
+        //         // line by line actions
+        //         String[] parts = line.split(separator);
+        //         String password = parts[1];
+        //         // decrypt function to be made later
+        //     }
+        //     b.close();
+        // }
+        // catch(IOException e){
+        //     System.out.println("IOException, error ocurred");
+        // }
+        // // TODO: Tips: Use buffered reader, make sure you split on separator, make sure you decrypt password
+
+
+
+        // Clear current in-memory list
+        passwords.clear();
+
+        try {
             BufferedReader b = new BufferedReader(new FileReader(passwordFile));
             String line;
+            int lineNumber = 0;
+
             while ((line = b.readLine()) != null) {
-                // line by line actions
-                String[] parts = line.split(separator);
-                String password = parts[1];
-                // decrypt function to be made later
+                // Skip first line (salt + encrypted verify string)
+                if (lineNumber == 0) {
+                    lineNumber++;
+                    continue;
+                }
+
+                // Split line by tab
+                String[] parts = line.split(separator);  // separator = "\t"
+                if (parts.length != 2) continue;         // skip malformed lines
+
+                String label = parts[0];
+                String encrypted = parts[1];
+
+                try {
+                    String decrypted = decryptString(encrypted, savedKey);
+                    Password p = new Password(label, decrypted);
+                    passwords.add(p);
+                } catch (Exception e) {
+                    System.out.println("Decrypt failed on line " + lineNumber);
+                }
+
+                lineNumber++;
             }
+
             b.close();
+        } catch (IOException e) {
+            System.out.println("IOException: error occurred while reading file");
         }
-        catch(IOException e){
-            System.out.println("IOException, error ocurred");
-        }
-        // TODO: Tips: Use buffered reader, make sure you split on separator, make sure you decrypt password
+        
+
     }
 
     public PasswordModel() {
@@ -81,14 +131,15 @@ public class PasswordModel {
         passwordFile.createNewFile();
         // TODO: Use password to create token and save in file with salt (TIP: Save these just like you would save password)
         byte salt[] = generateSalt();
+
         byte encodedKey[] = createKey(salt, password);
         savedKey = encodedKey;
         String encryptedToken = encryptString(verifyString, encodedKey);
 
-        String saltString = salt.toString();
+        String saltString = new String(salt, StandardCharsets.UTF_8);
 
         try (FileWriter writer = new FileWriter(passwordFile)) {
-            writer.write(saltString + "\t" + encryptedToken);
+            writer.write(saltString + "\t" + encryptedToken + System.lineSeparator());
         }
 
     }
@@ -98,7 +149,8 @@ public class PasswordModel {
         passwordFilePassword = password; // DO NOT CHANGE
 
         // TODO: Check first line and use salt to verify that you can decrypt the token using the password from the user
-        // TODO: TIP !!! If you get an exception trying to decrypt, that also means they have the wrong passcode, return false!
+        // TODO: TIP !!! If you getLabel();
+        // try{} an exception trying to decrypt, that also means they have the wrong passcode, return false!
         try (BufferedReader reader = new BufferedReader(new FileReader(passwordFile))) {
 
             String line = reader.readLine();
@@ -135,16 +187,55 @@ public class PasswordModel {
         // TODO: Remove it from file
     }
 
-    public void updatePassword(Password password, int index) {
+    public void updatePassword(Password password, int index) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, 
+    InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException {
         passwords.set(index, password);
 
         // TODO: Update the file with the new password information
+        String passString = password.getPassword();
+        String encryptedString = encryptString(passString, savedKey);
+        String label = password.getLabel();
+        String newLine = label + "\t" + encryptedString;
+
+        List<String> lines = new ArrayList<>();
+        try (BufferedReader reader = new BufferedReader(new FileReader(passwordFile))) {
+            String line;
+            while ((line = reader.readLine()) != null) {
+                lines.add(line);
+            }
+        }
+
+        int fileLineIndex = index + 1;
+        if (fileLineIndex < lines.size()) {
+            lines.set(fileLineIndex, newLine);
+        } else {
+            throw new IOException("Password entry not found in file.");
+        }
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile))) {
+            for (String line : lines) {
+                writer.write(line);
+                writer.write(System.lineSeparator());
+            }
+        }
     }
 
-    public void addPassword(Password password) {
+    public void addPassword(Password password) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, 
+    InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException {
         passwords.add(password);
 
         // TODO: Add the new password to the file
+        // String passString = password.toString();
+        // String encryptedString = encryptString(passString, savedKey);
+        String label = password.getLabel();
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile, true))) { 
+            writer.write(label + System.lineSeparator());
+        }
+
+        // try{
+        //     bufferedWriter()
+        //     \n + label + "\t" + encryptedString
+        // }
     }
 
     // TODO: Tip: Break down each piece into individual methods, for example: generateSalt(), encryptPassword, generateKey(), saveFile, etc ...
@@ -184,13 +275,14 @@ public class PasswordModel {
     // if output is not "Mattia" then you know the entered password was incorrect
     // pass output into corect password? function
     private static String decryptString(String string, byte encodedKey[]) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-        // get salt from password file 
+        // getLabel();
+        // try{} salt from password file 
         Cipher cipher = Cipher.getInstance("AES");
         SecretKeySpec key = new SecretKeySpec(encodedKey, "AES");
         cipher.init(Cipher.DECRYPT_MODE, key);
-        byte decodedData[] = Base64.getDecoder().decode(encodedVerifyString);
+        byte decodedData[] = Base64.getDecoder().decode(string); //changed input to .decode() from .decode(encodedVerifyString) to .decode(string)
         byte decryptedData[] = cipher.doFinal(decodedData);
-        String decryptedString = decryptedData.toString();
+        String decryptedString = new String(decryptedData, StandardCharsets.UTF_8);
         return decryptedString;
         
     }
@@ -199,7 +291,7 @@ public class PasswordModel {
         // creating a key using PBKDF2 from the inputted password using the salt we made
         // then encode that key
         KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 600000, 256);
-        SecretKeyFactory factory = SecretKeyFactory.getInstance("PDBKDF2WithHmacSHA256");
+        SecretKeyFactory factory = SecretKeyFactory.getInstance("PBKDF2WithHmacSHA256");
         SecretKey privateKey = factory.generateSecret(spec);
         byte encodedKey[] = privateKey.getEncoded();
         return encodedKey;
