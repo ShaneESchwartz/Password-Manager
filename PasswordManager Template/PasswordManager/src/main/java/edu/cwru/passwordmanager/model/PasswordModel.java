@@ -7,6 +7,7 @@ import javax.crypto.*;
 import javax.crypto.spec.PBEKeySpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.io.*;
+import java.nio.charset.StandardCharsets;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -26,6 +27,7 @@ public class PasswordModel {
     static private String passwordFilePassword = "";
     static private byte [] passwordFileKey;
     static private byte [] passwordFileSalt;
+    static private byte [] savedKey;
     // static private Cipher cipher;
     // static {
     
@@ -74,26 +76,53 @@ public class PasswordModel {
         return passwordFile.exists();
     }
 
-    static public void initializePasswordFile(String password) throws IOException {
+    static public void initializePasswordFile(String password) throws IOException, NoSuchAlgorithmException, 
+    InvalidKeySpecException, NoSuchPaddingException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         passwordFile.createNewFile();
         // TODO: Use password to create token and save in file with salt (TIP: Save these just like you would save password)
-        
-        String salt = generateSalt();
-        String passwordSalt = password + salt;
-        passwordFileSalt.add(salt)
-        encryptedPasswordSalt = passwordsalt.encrypt();
-        passwordFilePassword.add(encryptedPasswordSalt);
+        byte salt[] = generateSalt();
+        byte encodedKey[] = createKey(salt, password);
+        savedKey = encodedKey;
+        String encryptedToken = encryptString(verifyString, encodedKey);
 
+        String saltString = salt.toString();
+
+        try (FileWriter writer = new FileWriter(passwordFile)) {
+            writer.write(saltString + "\t" + encryptedToken);
+        }
 
     }
 
-    static public boolean verifyPassword(String password) {
+    static public boolean verifyPassword(String password) throws IOException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException,
+     NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         passwordFilePassword = password; // DO NOT CHANGE
 
         // TODO: Check first line and use salt to verify that you can decrypt the token using the password from the user
         // TODO: TIP !!! If you get an exception trying to decrypt, that also means they have the wrong passcode, return false!
+        try (BufferedReader reader = new BufferedReader(new FileReader(passwordFile))) {
 
-        return false;
+            String line = reader.readLine();
+            if (line == null) return false;
+
+            String[] parts = line.split("\t");
+            if(parts.length != 2) return false;
+
+            String saltString = parts[0];
+            String encryptedToken = parts[1];
+
+            byte[] salt = saltString.getBytes(StandardCharsets.UTF_8);
+
+            byte[] key = createKey(salt, password);
+
+            String decrypted = decryptString(encryptedToken, key);
+
+            return verifyString.equals(decrypted);
+
+        } catch (Exception e) {
+            return false;
+        }
+        
+        
     }
 
     public ObservableList<Password> getPasswords() {
@@ -121,13 +150,6 @@ public class PasswordModel {
     // TODO: Tip: Break down each piece into individual methods, for example: generateSalt(), encryptPassword, generateKey(), saveFile, etc ...
     // TODO: Use these functions above, and it will make it easier! Once you know encryption, decryption, etc works, you just need to tie them in
 
-    //Decrypt Helper Function
-    private String decrypt(String input) {
-
-        return input;
-
-    }
-
     // Generate Key with PBKDF2
 
     //Encrypt
@@ -136,7 +158,7 @@ public class PasswordModel {
     // Call Generate Salt
     // Generate Key 
     // then encrypt password
-    private static String encryptPassword(String password, byte encodedKey[]) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+    private static String encryptString(String string, byte encodedKey[]) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
         // Generate salt, then encode salt
 
         // creating a key using PBKDF2 from the inputted password using the salt we made
@@ -151,42 +173,36 @@ public class PasswordModel {
         Cipher cipher = Cipher.getInstance("AES");
         SecretKeySpec key = new SecretKeySpec(encodedKey, "AES");
         cipher.init(Cipher.ENCRYPT_MODE, key);
-        byte encryptedData[] = cipher.doFinal(verifyString.getBytes());
-        String messageString = new String(Base64.getEncoder().encode(encryptedData));
+        byte encryptedString[] = cipher.doFinal(string.getBytes());
+        String encodedString = new String(Base64.getEncoder().encode(encryptedString));
 
-        return messageString;
+        return encodedString;
     }
 
     // Decrypt
     // Use inputted password to attempt to decrypt verification string "Mattia"
     // if output is not "Mattia" then you know the entered password was incorrect
     // pass output into corect password? function
-    private static String decryptPassword(String password, byte salt[]) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
+    private static String decryptString(String string, byte encodedKey[]) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
         // get salt from password file 
-        
-        byte encodedKey[] = createKey(salt, password);
-        
         Cipher cipher = Cipher.getInstance("AES");
         SecretKeySpec key = new SecretKeySpec(encodedKey, "AES");
         cipher.init(Cipher.DECRYPT_MODE, key);
         byte decodedData[] = Base64.getDecoder().decode(encodedVerifyString);
         byte decryptedData[] = cipher.doFinal(decodedData);
-        String decryptedVerificationString = new String(decryptedData);
-        return decryptedVerificationString;
+        String decryptedString = decryptedData.toString();
+        return decryptedString;
         
     }
 
     private static byte[] createKey(byte salt[], String password) throws NoSuchAlgorithmException, InvalidKeySpecException{
-
         // creating a key using PBKDF2 from the inputted password using the salt we made
         // then encode that key
         KeySpec spec = new PBEKeySpec(password.toCharArray(), salt, 600000, 256);
         SecretKeyFactory factory = SecretKeyFactory.getInstance("PDBKDF2WithHmacSHA256");
         SecretKey privateKey = factory.generateSecret(spec);
         byte encodedKey[] = privateKey.getEncoded();
-
         return encodedKey;
-
     }
 
     //Generate Salt then encode it
