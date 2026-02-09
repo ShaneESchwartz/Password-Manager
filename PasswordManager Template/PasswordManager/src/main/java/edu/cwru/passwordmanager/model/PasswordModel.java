@@ -94,6 +94,8 @@ public class PasswordModel {
 
                 // Split line by tab
                 String[] parts = line.split(separator);  // separator = "\t"
+
+                //THIS LINE IS WRONG = LINES ARE THREE LONG SOMETIMES
                 if (parts.length != 2) continue;         // skip malformed lines
 
                 String label = parts[0];
@@ -165,10 +167,14 @@ public class PasswordModel {
             byte[] salt = saltString.getBytes(StandardCharsets.UTF_8);
 
             byte[] key = createKey(salt, password);
-
+            
+            // NEED TO ADD THE FOLLOWING IN HERE:
+            savedKey = key;
             String decrypted = decryptString(encryptedToken, key);
 
             return verifyString.equals(decrypted);
+
+            
 
         } catch (Exception e) {
             return false;
@@ -222,20 +228,35 @@ public class PasswordModel {
 
     public void addPassword(Password password) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, 
     InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException {
-        passwords.add(password);
 
         // TODO: Add the new password to the file
         // String passString = password.toString();
         // String encryptedString = encryptString(passString, savedKey);
+        
+        // old code taken out -raaghuv
+        /* 
+        passwords.add(password);
         String label = password.getLabel();
         try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile, true))) { 
             writer.write(label + System.lineSeparator());
-        }
+        } */
 
         // try{
         //     bufferedWriter()
         //     \n + label + "\t" + encryptedString
         // }
+
+        //i dont think this will help.,... but idk 
+        passwords.add(password);
+
+        String label = password.getLabel();
+        String encrypted = encryptString(password.getPassword(), savedKey);
+
+        try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile, true))) {
+            writer.write(label + separator + encrypted);
+            writer.write(System.lineSeparator());
+        }
+
     }
 
     // TODO: Tip: Break down each piece into individual methods, for example: generateSalt(), encryptPassword, generateKey(), saveFile, etc ...
