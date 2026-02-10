@@ -188,9 +188,47 @@ public class PasswordModel {
     }
 
     public void deletePassword(int index) {
-        passwords.remove(index);
+        // Defensive check: invalid selection
+        if (index < 0 || index >= passwords.size()) {
+            return;
+        }
 
-        // TODO: Remove it from file
+        try {
+            // Remove from in-memory list
+            passwords.remove(index);
+
+            // Read all lines from file
+            List<String> lines = new ArrayList<>();
+            try (BufferedReader reader = new BufferedReader(new FileReader(passwordFile))) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    lines.add(line);
+                }
+            }
+
+            // line 0 = salt + verification token
+            // line i+1 = password entry
+            int fileLineIndex = index + 1;
+
+            if (fileLineIndex <= 0 || fileLineIndex >= lines.size()) {
+                throw new IOException("Password entry not found in file.");
+            }
+
+            lines.remove(fileLineIndex);
+
+            // Rewrite file
+            try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile))) {
+                for (String line : lines) {
+                    writer.write(line);
+                    writer.newLine();
+                }
+            }
+
+        } catch (IOException e) {
+            // Log the error but DO NOT crash JavaFX
+            System.err.println("Failed to delete password:");
+            e.printStackTrace();
+        }
     }
 
     public void updatePassword(Password password, int index) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeySpecException, 
