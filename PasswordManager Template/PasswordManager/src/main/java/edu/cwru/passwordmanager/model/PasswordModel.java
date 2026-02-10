@@ -1,3 +1,6 @@
+// Developed by Shane Schwartz and Raaghuv Vazirani for Computer Security
+// Spring 2026
+
 package edu.cwru.passwordmanager.model;
 
 import javafx.collections.FXCollections;
@@ -154,13 +157,11 @@ public class PasswordModel {
     }
 
     public void deletePassword(int index) {
-        // Defensive check: invalid selection
         if (index < 0 || index >= passwords.size()) {
             return;
         }
 
         try {
-            // Remove from in-memory list
             passwords.remove(index);
 
             // Read all lines from file
@@ -172,7 +173,7 @@ public class PasswordModel {
                 }
             }
 
-            // line 0 = salt + verification token
+            // line 0 is salt + verification
             // line i+1 = password entry
             int fileLineIndex = index + 1;
 
@@ -182,7 +183,6 @@ public class PasswordModel {
 
             lines.remove(fileLineIndex);
 
-            // Rewrite file
             try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile))) {
                 for (String line : lines) {
                     writer.write(line);
