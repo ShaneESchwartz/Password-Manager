@@ -30,28 +30,7 @@ public class PasswordModel {
     static private byte [] passwordFileKey;
     static private byte [] passwordFileSalt;
     static private byte [] savedKey;
-    // static private Cipher cipher;
-    // static {
-    
-    //     try {
-    //         cipher = Cipher.getInstance("AES");
-    //     }
-    //     catch(NoSuchPaddingException nspe) { //break into seperate methods - probably wrong password //wont getLabel();
-    // try{} cookies back, will getLabel();
-    // /
-    // bufferedWriter()
-    // label + "\t" + encryptedString/ try{} this error -> retyurns boolean 
-    // /
-    // bufferedWriter()
-    // label + "\t" + encryptedString/         //encrypt and decrypt methods can both create cipher
-    //         //be able to text that it does what we want this to do. 
-    //         System.out.println("NoSuchPaddingException");
-    //     }
-    //     catch(NoSuchAlgorithmException nsae) {
-    //         System.out.println("NoSuchAlgorithmException");
-    //     }
-    // }
-    // static private KeySpec spec = new PBEKeySpec(keyString.toCharArray(), salt, 600000, 256);
+
 
     // COMPLETED: You can set this to whatever you like to verify that the password the user entered is correct
     private static String verifyString = "Mattia";
@@ -59,20 +38,7 @@ public class PasswordModel {
 
     private void loadPasswords() {
         // // TODO: Replace with loading passwords from file, you will want to add them to the passwords list defined above
-        // try{
-        //     BufferedReader b = new BufferedReader(new FileReader(passwordFile));
-        //     String line;
-        //     while ((line = b.readLine()) != null) {
-        //         // line by line actions
-        //         String[] parts = line.split(separator);
-        //         String password = parts[1];
-        //         // decrypt function to be made later
-        //     }
-        //     b.close();
-        // }
-        // catch(IOException e){
-        //     System.out.println("IOException, error ocurred");
-        // }
+ 
         // // TODO: Tips: Use buffered reader, make sure you split on separator, make sure you decrypt password
 
 
@@ -93,10 +59,10 @@ public class PasswordModel {
                 }
 
                 // Split line by tab
-                String[] parts = line.split(separator);  // separator = "\t"
+                String[] parts = line.split(separator);  
 
                 //THIS LINE IS WRONG = LINES ARE THREE LONG SOMETIMES
-                if (parts.length != 2) continue;         // skip malformed lines
+                if (parts.length != 2) continue;        
 
                 String label = parts[0];
                 String encrypted = parts[1];
@@ -225,7 +191,6 @@ public class PasswordModel {
             }
 
         } catch (IOException e) {
-            // Log the error but DO NOT crash JavaFX
             System.err.println("Failed to delete password:");
             e.printStackTrace();
         }
@@ -268,23 +233,6 @@ public class PasswordModel {
     InvalidKeyException, IllegalBlockSizeException, BadPaddingException, IOException {
 
         // TODO: Add the new password to the file
-        // String passString = password.toString();
-        // String encryptedString = encryptString(passString, savedKey);
-        
-        // old code taken out -raaghuv
-        /* 
-        passwords.add(password);
-        String label = password.getLabel();
-        try (BufferedWriter writer = new BufferedWriter(new FileWriter(passwordFile, true))) { 
-            writer.write(label + System.lineSeparator());
-        } */
-
-        // try{
-        //     bufferedWriter()
-        //     \n + label + "\t" + encryptedString
-        // }
-
-        //i dont think this will help.,... but idk 
         passwords.add(password);
 
         String label = password.getLabel();
@@ -315,8 +263,6 @@ public class PasswordModel {
         // then encode that key
 
         // encoding the verification string "Mattia"
-        // byte verifyByte[] = verifyString.getBytes();
-        // encodedVerifyString = Base64.getEncoder().encodeToString(verifyByte);
 
         // take encoded key from PBKDF2 then encrypt verification string "Mattia" using that key
         // return the encrypted and encoded verification string
@@ -334,7 +280,6 @@ public class PasswordModel {
     // if output is not "Mattia" then you know the entered password was incorrect
     // pass output into corect password? function
     private static String decryptString(String string, byte encodedKey[]) throws InvalidKeyException, NoSuchAlgorithmException, InvalidKeySpecException, NoSuchPaddingException, IllegalBlockSizeException, BadPaddingException {
-        // getLabel();
         // try{} salt from password file 
         Cipher cipher = Cipher.getInstance("AES");
         SecretKeySpec key = new SecretKeySpec(encodedKey, "AES");
